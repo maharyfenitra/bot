@@ -1,0 +1,20 @@
+{% extends 'main_layout.html'%}
+
+{% block content%}
+<div>
+
+    <div>
+        {% if request.user.is_authenticated %}
+        <form method="POST">
+            {% csrf_token%}
+            <label>Quantity</label>
+            <input name="quantity"/>
+            <button >Buy</button>
+            <button>Sell</button>
+        </form>
+        {% else%}
+            <p>To be able to trade you should login or register</p>
+        {%endif%}
+    </div>
+</div>
+{% endblock %}
