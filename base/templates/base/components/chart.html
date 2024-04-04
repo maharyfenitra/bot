@@ -1,0 +1,71 @@
+<style>
+    /* Style the chart container */
+    #chart-container {
+        width: 100%;
+        height: 70vh;
+        margin: 0 auto;
+    }
+</style>
+<!-- Container for the chart -->
+<div id="chart-container"></div>
+
+<script>
+    // Get a reference to the chart container
+    const chartContainer = document.getElementById('chart-container');
+
+// Create a new chart
+const chart = LightweightCharts.createChart(chartContainer, {
+    width: chartContainer.offsetWidth, // Set chart width to container width
+    height: chartContainer.offsetHeight, // Set chart height to container height
+    layout: {
+        backgroundColor: '#f0f4f8', // Set background color
+    },
+    priceScale: {
+        borderColor: '#d1d4dc', // Set border color for price scale
+    },
+    timeScale: {
+        borderColor: '#d1d4dc', // Set border color for time scale
+    },
+});
+
+// Add a candlestick series to the chart
+const candleSeries = chart.addCandlestickSeries();
+
+// Function to update the chart with historical data
+function updateChartWithData(data) {
+    candleSeries.setData(data); // Set the chart data
+}
+
+// Open a WebSocket connection to Binance
+const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1m');
+
+// Handle messages received from the WebSocket
+ws.onmessage = function(event) {
+    const message = JSON.parse(event.data);
+    const candle = {
+        time: message.k.t / 1000, // Convert timestamp to seconds
+        open: parseFloat(message.k.o),
+        high: parseFloat(message.k.h),
+        low: parseFloat(message.k.l),
+        close: parseFloat(message.k.c),
+    };
+    candleSeries.update(candle); // Update the chart with the new candlestick
+};
+
+// Fetch historical data from Binance REST API
+fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1000')
+    .then(response => response.json())
+    .then(data => {
+        const formattedData = data.map(item => ({
+            time: item[0] / 1000, // Convert timestamp to seconds
+            open: parseFloat(item[1]),
+            high: parseFloat(item[2]),
+            low: parseFloat(item[3]),
+            close: parseFloat(item[4]),
+        }));
+        updateChartWithData(formattedData); // Update the chart with historical data
+    })
+    .catch(error => {
+        console.error('Error fetching historical data:', error);
+    });
+</script>
