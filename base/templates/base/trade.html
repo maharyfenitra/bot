@@ -1,64 +1,150 @@
-{% extends 'main_layout.html'%}
+{% extends 'main_layout.html' %}
 
-{% block content%}
-<div>
+{% block content %}
+<div class="row">
+    <div class="col-md-8 left">
+        <style>
+            /* Style the chart container */
+            #chart-container {
+                width: 100%;
+                height: 400px;
+                margin: 0 auto;
+            }
+        </style>
+        <!-- Container for the chart -->
+        <div id="chart-container"></div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">ORDERID</th>
+                    <th scope="col">SYMBOL</th>
+                    <th scope="col">STATUS</th>
+                    <th scope="col">SIDE</th>
+                    <th scope="col">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td>{{ order.orderId }}</td>
+                        <td>{{ order.symbol }}</td>
+                        <td>{{ order.status }}</td>
+                        <td>{{ order.side }}</td>
+                        <td><a href="{% url 'cancel_order' order.orderId %}">Cancel</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-    <div>
+    <div class="col-md-4 right">
         {% if request.user.is_authenticated %}
-        <!-- Earnings (Annual) Card Example -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
+            <!-- Earnings (Annual) Card Example -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    Trading Position
+                </div>
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Earnings (Annual)
-                                <form method="POST">
-                                    {% csrf_token%}
-                                    <label>Quantity</label>
-                                    <br>
-                                    <input name="quantity"/>
-                                    <br>
-                                    <button class="btn bg-success">
-                                        <span class="text">BUY</span>
-                                    </button>
-                                    <button class="btn bg-danger">
-                                        <span class="text">SELL</span>
-                                    </button>
-                                </form>
-                            
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
+                    <form method="POST" id="tradeForm">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="quantity">Quantity</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" placeholder="Enter quantity" required>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        <div class="form-group">
+                            <label for="leverage">Leverage</label>
+                            <input type="number" class="form-control" id="leverage" name="leverage" placeholder="Enter leverage" required>
                         </div>
-                    </div>
+                        <button type="button" class="btn btn-success btn-block" id="buyButton">BUY</button>
+                        <button type="button" class="btn btn-danger btn-block" id="sellButton">SELL</button>
+                    </form>
                 </div>
             </div>
-        </div>
-        
-        {% else%}
+        {% else %}
             <p>To be able to trade you should login or register</p>
-        {%endif%}
+        {% endif %}
     </div>
 </div>
 
-<div class="card-body">
-    <div class="table-responsive">
-        <table>
-        {% for order in orders %}
-
-            <tr>
-                <td>{{order.orderId}}</td>
-                <td>{{order.symbol}}</td>
-                <td>{{order.status}}</td>
-                <td>{{order.side}}</td>
-                <td><a href="{% url 'cancel_order' order.orderId%}">Cancel</a></td>
-            </tr>
-
-        {% endfor%}
-    </table>
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationModalLabel">Confirm Action</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to <span id="actionText"></span> <span id="quantityText"></span> with leverage <span id="leverageText"></span>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="confirmActionButton">Confirm</button>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+    // Get a reference to the chart container
+    const chartContainer = document.getElementById('chart-container');
+
+// Create a new chart
+const chart = LightweightCharts.createChart(chartContainer, {
+    width: chartContainer.offsetWidth, // Set chart width to container width
+    height: chartContainer.offsetHeight, // Set chart height to container height
+    layout: {
+        backgroundColor: '#f0f4f8', // Set background color
+    },
+    priceScale: {
+        borderColor: '#d1d4dc', // Set border color for price scale
+    },
+    timeScale: {
+        borderColor: '#d1d4dc', // Set border color for time scale
+    },
+});
+
+// Add a candlestick series to the chart
+const candleSeries = chart.addCandlestickSeries();
+
+// Function to update the chart with historical data
+function updateChartWithData(data) {
+    candleSeries.setData(data); // Set the chart data
+}
+
+// Open a WebSocket connection to Binance
+const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1m');
+
+// Handle messages received from the WebSocket
+ws.onmessage = function(event) {
+    const message = JSON.parse(event.data);
+    const candle = {
+        time: message.k.t / 1000, // Convert timestamp to seconds
+        open: parseFloat(message.k.o),
+        high: parseFloat(message.k.h),
+        low: parseFloat(message.k.l),
+        close: parseFloat(message.k.c),
+    };
+    candleSeries.update(candle); // Update the chart with the new candlestick
+};
+
+// Fetch historical data from Binance REST API
+fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1000')
+    .then(response => response.json())
+    .then(data => {
+        const formattedData = data.map(item => ({
+            time: item[0] / 1000, // Convert timestamp to seconds
+            open: parseFloat(item[1]),
+            high: parseFloat(item[2]),
+            low: parseFloat(item[3]),
+            close: parseFloat(item[4]),
+        }));
+        updateChartWithData(formattedData); // Update the chart with historical data
+    })
+    .catch(error => {
+        console.error('Error fetching historical data:', error);
+    });
+</script>
 {% endblock %}
