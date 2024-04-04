@@ -5,16 +5,60 @@
 
     <div>
         {% if request.user.is_authenticated %}
-        <form method="POST">
-            {% csrf_token%}
-            <label>Quantity</label>
-            <input name="quantity"/>
-            <button >Buy</button>
-            <button>Sell</button>
-        </form>
+        <!-- Earnings (Annual) Card Example -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Earnings (Annual)
+                                <form method="POST">
+                                    {% csrf_token%}
+                                    <label>Quantity</label>
+                                    <br>
+                                    <input name="quantity"/>
+                                    <br>
+                                    <button class="btn bg-success">
+                                        <span class="text">BUY</span>
+                                    </button>
+                                    <button class="btn bg-danger">
+                                        <span class="text">SELL</span>
+                                    </button>
+                                </form>
+                            
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         {% else%}
             <p>To be able to trade you should login or register</p>
         {%endif%}
+    </div>
+</div>
+
+<div class="card-body">
+    <div class="table-responsive">
+        <table>
+        {% for order in orders %}
+
+            <tr>
+                <td>{{order.orderId}}</td>
+                <td>{{order.symbol}}</td>
+                <td>{{order.status}}</td>
+                <td>{{order.side}}</td>
+                <td><a href="{% url 'cancel_order' order.orderId%}">Cancel</a></td>
+            </tr>
+
+        {% endfor%}
+    </table>
     </div>
 </div>
 {% endblock %}

@@ -3,6 +3,15 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm
+import os 
+from binance.client import Client
+from dotenv import load_dotenv
+load_dotenv()
+
+api_key = os.environ['BINANCE_API_KEY_TEST']
+api_secret = os.environ['BINANCE_API_SECRET_TEST']
+client = Client(api_key,api_secret, testnet=True)
+
 
 # Create your views here.
 
@@ -10,9 +19,60 @@ def home(request):
     return render(request, 'base/home.html')
 
 def trade(request):
+    symbol = 'BTCUSDT'
     if request.method == 'POST':
+        
+        ticker = client.get_symbol_ticker(symbol=symbol)
+        current_price = float(ticker['price'])
+        # Define your order parameters
+        side = 'BUY'  # Or 'SELL' if you want to take a short position
+
+        # Define the quantity of the contract you want to trade
+        quantity = 0.5  # Adjust this based on your desired position size
+
+        # Define the type of order (LIMIT, MARKET, etc.)
+        order_type = 'MARKET'  # Or 'LIMIT' if you want to specify a price
+        
+        # Execute the order
+        order = client.futures_create_order(
+            symbol=symbol,
+            side=side,
+            type=order_type,
+            quantity=quantity
+        )
+        
         return redirect('trade')
-    return render(request, 'base/trade.html')
+    orders = client.futures_get_all_orders(symbol=symbol)
+    
+    order = client.futures_get_order(symbol=symbol, orderId=3751436361)
+     
+    context = { "orders": orders }
+    return render(request, 'base/trade.html', context)
+def cancel_order(request, pk):
+    
+    symbol = 'BTCUSDT'
+    
+    order = client.futures_get_order(symbol=symbol, orderId=pk)
+
+    print(order)
+    
+    # Determine the opposite side to close the position
+    close_side = 'SELL' 
+    
+    if order['side'] == 'SELL':
+        close_side = 'BUY' 
+    
+    print(close_side)
+    
+    close_order = client.futures_create_order(
+        symbol=symbol,
+        side=close_side,
+        type='MARKET',
+        quantity=float(order['executedQty'])
+    )
+    
+    print(close_order)
+    return redirect('trade')
 
 def login_page(request):
     if request.user.is_authenticated:

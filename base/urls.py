@@ -8,4 +8,5 @@ urlpatterns = [
     path('logout/',views.logout_page, name='logout'),
     path('register/',views.register_page, name='register'),
     path('blank/',views.blank_page, name='blank'),
+    path('cancel_order/<str:pk>',views.cancel_order, name='cancel_order'),
 ]
