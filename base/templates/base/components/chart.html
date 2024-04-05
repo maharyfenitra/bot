@@ -7,23 +7,39 @@
     }
 </style>
 <!-- Container for the chart -->
-<div id="chart-container"></div>
+<div id="chart-container" style="width: 100%; height: 600px;"></div>
     
-<!-- Dropdown menu for selecting timeframes -->
-<div>
-    <label for="timeframe">Select Timeframe:</label>
-    <select id="timeframe">
-        <option value="1m">1 Minute</option>
-        <option value="5m">5 Minutes</option>
-        <option value="15m">15 Minutes</option>
-        <option value="30m">30 Minutes</option>
-        <option value="1h">1 Hour</option>
-        <option value="4h">4 Hours</option>
-        <option value="1d">1 Day</option>
-        <option value="1w">1 Week</option>
-        <option value="1M">1 Month</option>
-    </select>
+<div class="row mb-3">
+    <!-- Dropdown menu for selecting timeframes -->
+    <div class="col">
+        <label for="timeframe">Select Timeframe:</label>
+        <select id="timeframe" class="form-control">
+            <option value="1m">1 Minute</option>
+            <option value="5m">5 Minutes</option>
+            <option value="15m">15 Minutes</option>
+            <option value="30m">30 Minutes</option>
+            <option value="1h">1 Hour</option>
+            <option value="4h">4 Hours</option>
+            <option value="1d">1 Day</option>
+            <option value="1w">1 Week</option>
+            <option value="1M">1 Month</option>
+        </select>
+    </div>
+
+    <!-- Dropdown menu for selecting time units -->
+    <div class="col">
+        <label for="timeunit">Select Time Unit:</label>
+        <select id="timeunit" class="form-control">
+            <option value="day">Day</option>
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+            <option value="hour">Hour</option>
+            <option value="minute">Minute</option>
+        </select>
+    </div>
 </div>
+
+
 
 <!-- Script to fetch historical data from Binance REST API -->
 <script>
@@ -90,4 +106,40 @@
         const selectedTimeframe = this.value;
         fetchHistoricalData(selectedTimeframe); // Fetch historical data for the selected timeframe
     });
+
+    // Event listener for timeunit selection
+    document.getElementById('timeunit').addEventListener('change', function() {
+        const selectedTimeUnit = this.value;
+        chart.timeScale().applyOptions({ timeVisible: true, secondsVisible: false, tickMarkFormatter: timeUnitFormatter(selectedTimeUnit) }); // Set the time scale options based on the selected time unit
+    });
+
+    // Function to format time unit for time scale
+    function timeUnitFormatter(selectedTimeUnit) {
+        return (timestamp) => {
+            const date = new Date(timestamp * 1000);
+            switch (selectedTimeUnit) {
+                case 'day':
+                    return date.toLocaleDateString();
+                case 'week':
+                    // Customize week format as needed
+                    return 'Week ' + getWeekNumber(date);
+                case 'month':
+                    return date.toLocaleString('default', { month: 'long' });
+                case 'hour':
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                case 'minute':
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                default:
+                    return '';
+            }
+        };
+    }
+
+    // Function to get week number
+    function getWeekNumber(date) {
+        const oneJan = new Date(date.getFullYear(), 0, 1);
+        const dayOfYear = Math.floor((date - oneJan) / 86400000);
+        const weekNumber = Math.ceil((dayOfYear + oneJan.getDay() + 1) / 7);
+        return weekNumber;
+    }
 </script>
