@@ -3,12 +3,7 @@
 {% block content %}
 <div class="row">
     <div class="col-md-1 symbols">
-        <ul class="list-group">
-            <li class="list-group-item"><a href="#">BTCUSDT</a></li>
-            <li class="list-group-item"><a href="#">ETHUSDT</a></li>
-            <li class="list-group-item"><a href="#">LTCUSDT</a></li>
-            <!-- Add more symbols here -->
-        </ul>
+        {% include 'base/components/symboles_list.html'%}
     </div>
     <div class="col-md-8 left">
         {% include 'base/components/chart.html' %}
